@@ -16,7 +16,6 @@ export const TaskFilters: React.FC<TaskFiltersProps> = ({
                                                         }) => {
     return (
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-            {/* Фільтрація */}
             <div className="flex gap-1">
                 <button
                     onClick={() => onFilterChange('all')}
@@ -50,7 +49,6 @@ export const TaskFilters: React.FC<TaskFiltersProps> = ({
                 </button>
             </div>
 
-            {/* Додаткове завдання: Сортування за пріоритетом */}
             <div className="flex items-center gap-2 w-full sm:w-auto">
                 <label className="text-xs font-semibold text-slate-500 whitespace-nowrap">
                     Сортування:

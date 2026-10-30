@@ -55,14 +55,14 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle, onDelete }) 
                         )}
                         <div className="flex items-center gap-2 mt-3">
               <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
-                📁 {task.category}
+                 {task.category}
               </span>
                             <span
                                 className={`text-xs px-2.5 py-0.5 rounded-full border font-medium ${
                                     priorityColors[task.priority]
                                 }`}
                             >
-                ⚡ {priorityLabels[task.priority]}
+                 {priorityLabels[task.priority]}
               </span>
                         </div>
                     </div>
@@ -73,7 +73,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle, onDelete }) 
                     className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg transition-colors text-sm hover:bg-rose-50"
                     title="Видалити завдання"
                 >
-                    🗑️
+                    х
                 </button>
             </div>
         </div>
