@@ -5,12 +5,28 @@ import { TaskStats } from './components/TaskStats';
 import { TaskFilters } from './components/TaskFilters';
 import { TaskList } from './components/TaskList';
 import { initialTasks } from './data/initialTasks';
-import type {FilterStatus, SortOrder, Task} from './types/task';
+import {
+    FILTER_STATUS,
+    type FilterStatus,
+    PRIORITY,
+    type Priority,
+    SORT_ORDER,
+    type SortOrder,
+    type Task,
+} from './types/task';
+
+const PRIORITY_WEIGHTS: Record<Priority, number> = {
+    [PRIORITY.HIGH]: 3,
+    [PRIORITY.MEDIUM]: 2,
+    [PRIORITY.LOW]: 1,
+};
 
 export function App() {
     const [tasks, setTasks] = useState<Task[]>(initialTasks);
-    const [filter, setFilter] = useState<FilterStatus>('all');
-    const [sortOrder, setSortOrder] = useState<SortOrder>('none');
+
+    // Початковий стан через константи
+    const [filter, setFilter] = useState<FilterStatus>(FILTER_STATUS.ALL);
+    const [sortOrder, setSortOrder] = useState<SortOrder>(SORT_ORDER.NONE);
 
     const handleAddTask = (newTaskData: Omit<Task, 'id' | 'completed'>) => {
         const newTask: Task = {
@@ -37,20 +53,20 @@ export function App() {
     const completedCount = tasks.filter((t) => t.completed).length;
     const activeCount = totalCount - completedCount;
 
+    // Перевірка фільтра через FILTER_STATUS
     const filteredTasks = tasks.filter((task) => {
-        if (filter === 'completed') return task.completed;
-        if (filter === 'active') return !task.completed;
+        if (filter === FILTER_STATUS.COMPLETED) return task.completed;
+        if (filter === FILTER_STATUS.ACTIVE) return !task.completed;
         return true;
     });
 
-    const priorityWeights = { high: 3, medium: 2, low: 1 };
-
+    // Перевірка сортування через SORT_ORDER
     const sortedTasks = [...filteredTasks].sort((a, b) => {
-        if (sortOrder === 'high-to-low') {
-            return priorityWeights[b.priority] - priorityWeights[a.priority];
+        if (sortOrder === SORT_ORDER.HIGH_TO_LOW) {
+            return PRIORITY_WEIGHTS[b.priority] - PRIORITY_WEIGHTS[a.priority];
         }
-        if (sortOrder === 'low-to-high') {
-            return priorityWeights[a.priority] - priorityWeights[b.priority];
+        if (sortOrder === SORT_ORDER.LOW_TO_HIGH) {
+            return PRIORITY_WEIGHTS[a.priority] - PRIORITY_WEIGHTS[b.priority];
         }
         return 0;
     });

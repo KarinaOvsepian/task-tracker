@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type {Priority, Task} from '../types/task';
+import { PRIORITY, type Priority, type Task } from '../types/task';
 
 interface TaskFormProps {
     onAddTask: (task: Omit<Task, 'id' | 'completed'>) => void;
@@ -9,7 +9,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ onAddTask }) => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [category, setCategory] = useState('Загальне');
-    const [priority, setPriority] = useState<Priority>('medium');
+    const [priority, setPriority] = useState<Priority>(PRIORITY.MEDIUM);
     const [error, setError] = useState('');
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -29,7 +29,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ onAddTask }) => {
         setTitle('');
         setDescription('');
         setCategory('Загальне');
-        setPriority('medium');
+        setPriority(PRIORITY.MEDIUM);
         setError('');
     };
 
@@ -86,9 +86,9 @@ export const TaskForm: React.FC<TaskFormProps> = ({ onAddTask }) => {
                         onChange={(e) => setPriority(e.target.value as Priority)}
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
                     >
-                        <option value="low">Низький (Low)</option>
-                        <option value="medium">Середній (Medium)</option>
-                        <option value="high">Високий (High)</option>
+                        <option value={PRIORITY.LOW}>Низький (Low)</option>
+                        <option value={PRIORITY.MEDIUM}>Середній (Medium)</option>
+                        <option value={PRIORITY.HIGH}>Високий (High)</option>
                     </select>
                 </div>
 

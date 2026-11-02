@@ -1,5 +1,5 @@
 import React from 'react';
-import type {Task} from '../types/task';
+import { PRIORITY, type Priority, type Task } from '../types/task';
 
 interface TaskItemProps {
     task: Task;
@@ -8,16 +8,16 @@ interface TaskItemProps {
 }
 
 export const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle, onDelete }) => {
-    const priorityColors = {
-        low: 'bg-slate-100 text-slate-600 border-slate-200',
-        medium: 'bg-amber-100 text-amber-800 border-amber-200',
-        high: 'bg-rose-100 text-rose-800 border-rose-200',
+    const PRIORITY_COLORS: Record<Priority, string> = {
+        [PRIORITY.LOW]: 'bg-slate-100 text-slate-600 border-slate-200',
+        [PRIORITY.MEDIUM]: 'bg-amber-100 text-amber-800 border-amber-200',
+        [PRIORITY.HIGH]: 'bg-rose-100 text-rose-800 border-rose-200',
     };
 
-    const priorityLabels = {
-        low: 'Низький',
-        medium: 'Середній',
-        high: 'Високий',
+    const PRIORITY_LABELS: Record<Priority, string> = {
+        [PRIORITY.LOW]: 'Низький',
+        [PRIORITY.MEDIUM]: 'Середній',
+        [PRIORITY.HIGH]: 'Високий',
     };
 
     return (
@@ -57,13 +57,9 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle, onDelete }) 
               <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
                  {task.category}
               </span>
-                            <span
-                                className={`text-xs px-2.5 py-0.5 rounded-full border font-medium ${
-                                    priorityColors[task.priority]
-                                }`}
-                            >
-                 {priorityLabels[task.priority]}
-              </span>
+                            <span className={`text-xs px-2.5 py-0.5 rounded-full border font-medium ${PRIORITY_COLORS[task.priority]}`}>
+                                {PRIORITY_LABELS[task.priority]}
+                            </span>
                         </div>
                     </div>
                 </div>

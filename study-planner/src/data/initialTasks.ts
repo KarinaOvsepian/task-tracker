@@ -1,4 +1,4 @@
-import type {Task} from '../types/task';
+import { PRIORITY, type Task } from '../types/task';
 
 export const initialTasks: Task[] = [
     {
@@ -6,23 +6,15 @@ export const initialTasks: Task[] = [
         title: 'React Components',
         description: 'Опрацювати базові принципи компонентів React',
         completed: false,
-        priority: 'high',
+        priority: PRIORITY.HIGH,
         category: 'React',
     },
     {
         id: 2,
         title: 'TypeScript Exercises',
-        description: 'Виконати практичні вправи з типізації',
+        description: 'Виконати практичні вправи',
         completed: true,
-        priority: 'medium',
+        priority: PRIORITY.MEDIUM,
         category: 'TypeScript',
-    },
-    {
-        id: 3,
-        title: 'Оформлення звіту',
-        description: 'Підготувати звіт до лабораторної роботи №8',
-        completed: false,
-        priority: 'low',
-        category: 'Університет',
     },
 ];
