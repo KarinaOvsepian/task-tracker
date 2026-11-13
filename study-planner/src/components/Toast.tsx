@@ -1,8 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useTaskContext } from '../hooks/useTaskContext';
+import { TOAST_TYPE, type ToastType } from '../types/task';
+
+const TYPE_STYLES: Record<ToastType, string> = {
+    [TOAST_TYPE.SUCCESS]: 'bg-emerald-600 text-white',
+    [TOAST_TYPE.INFO]: 'bg-indigo-600 text-white',
+    [TOAST_TYPE.WARNING]: 'bg-amber-500 text-white',
+    [TOAST_TYPE.ERROR]: 'bg-rose-600 text-white',
+};
 
 export const Toast: React.FC = () => {
-    const { toast, hideToast, pendingDeleteId, undoDelete } = useTaskContext();
+    const { toast, hideToast } = useTaskContext();
     const [progress, setProgress] = useState(100);
 
     useEffect(() => {
@@ -30,36 +38,18 @@ export const Toast: React.FC = () => {
             clearInterval(timer);
             clearTimeout(dismissTimer);
         };
-    }, [toast]);
+    }, [toast, hideToast]);
 
     if (!toast) return null;
 
-    const typeStyles = {
-        success: 'bg-emerald-600 text-white',
-        info: 'bg-indigo-600 text-white',
-        warning: 'bg-amber-500 text-white',
-        error: 'bg-rose-600 text-white',
-    };
-
     return (
-        <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end animate-bounce-in">
+        <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end">
             <div
-                className={`relative overflow-hidden px-4 py-3 rounded-xl shadow-lg flex items-center justify-between gap-4 min-w-[280px] max-w-md ${
-                    typeStyles[toast.type]
+                className={`relative overflow-hidden px-4 py-3 rounded-xl shadow-lg flex items-center justify-between gap-4 min-w-[260px] max-w-md ${
+                    TYPE_STYLES[toast.type]
                 }`}
             >
-                <div className="flex items-center gap-2 text-sm font-medium">
-                    <span>{toast.message}</span>
-                </div>
-
-                {pendingDeleteId !== null && toast.type === 'warning' && (
-                    <button
-                        onClick={() => undoDelete(pendingDeleteId)}
-                        className="px-2.5 py-1 bg-white text-amber-700 hover:bg-amber-50 rounded-lg text-xs font-bold transition-colors shadow-sm"
-                    >
-                        Скасувати
-                    </button>
-                )}
+                <span className="text-sm font-medium">{toast.message}</span>
 
                 {toast.duration && (
                     <div

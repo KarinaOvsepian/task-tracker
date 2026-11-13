@@ -3,6 +3,8 @@ import { TaskForm } from './components/TaskForm';
 import { TaskStats } from './components/TaskStats';
 import { TaskFilters } from './components/TaskFilters';
 import { TaskList } from './components/TaskList';
+import { Pagination } from './components/Pagination';
+import { TaskDetailsModal } from './components/TaskDetailsModal';
 import { Toast } from './components/Toast';
 import { TaskProvider } from './context/TaskContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -18,6 +20,8 @@ export function App() {
                         <TaskStats />
                         <TaskFilters />
                         <TaskList />
+                        <Pagination />
+                        <TaskDetailsModal />
                         <Toast />
                     </div>
                 </div>

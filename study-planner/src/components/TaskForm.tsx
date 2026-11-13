@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { PRIORITY, type Priority } from '../types/task';
 import { useTaskContext } from '../hooks/useTaskContext';
 
@@ -10,6 +10,8 @@ export const TaskForm: React.FC = () => {
     const [category, setCategory] = useState('Загальне');
     const [priority, setPriority] = useState<Priority>(PRIORITY.MEDIUM);
     const [error, setError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         if (editingTask) {
@@ -18,10 +20,17 @@ export const TaskForm: React.FC = () => {
             setCategory(editingTask.category);
             setPriority(editingTask.priority);
             setError('');
+            setSuccessMessage('');
         } else {
             resetForm();
         }
     }, [editingTask]);
+
+    useEffect(() => {
+        if (!successMessage) return;
+        const timer = setTimeout(() => setSuccessMessage(''), 3000);
+        return () => clearTimeout(timer);
+    }, [successMessage]);
 
     const resetForm = () => {
         setTitle('');
@@ -31,29 +40,41 @@ export const TaskForm: React.FC = () => {
         setError('');
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!title.trim()) {
             setError('Назва завдання є обовʼязковою!');
             return;
         }
 
+        setError('');
+        setSuccessMessage('');
+        setIsSubmitting(true);
+
         if (editingTask) {
-            updateTask(editingTask.id, {
+            const ok = await updateTask(editingTask.id, {
                 title: title.trim(),
                 description: description.trim(),
                 category: category.trim() || 'Загальне',
                 priority,
             });
+            if (ok) {
+                setSuccessMessage('Зміни успішно збережено!');
+            }
         } else {
-            addTask({
+            const ok = await addTask({
                 title: title.trim(),
                 description: description.trim(),
                 category: category.trim() || 'Загальне',
                 priority,
             });
-            resetForm();
+            if (ok) {
+                resetForm();
+                setSuccessMessage('Завдання успішно додано до списку!');
+            }
         }
+
+        setIsSubmitting(false);
     };
 
     return (
@@ -82,6 +103,12 @@ export const TaskForm: React.FC = () => {
                 </div>
             )}
 
+            {successMessage && (
+                <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-sm rounded-lg">
+                    + {successMessage}
+                </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
@@ -91,8 +118,9 @@ export const TaskForm: React.FC = () => {
                         type="text"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
+                        disabled={isSubmitting}
                         placeholder="Введіть назву завдання"
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:opacity-60"
                     />
                 </div>
 
@@ -104,8 +132,9 @@ export const TaskForm: React.FC = () => {
                         type="text"
                         value={category}
                         onChange={(e) => setCategory(e.target.value)}
+                        disabled={isSubmitting}
                         placeholder="Наприклад: React, Математика"
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:opacity-60"
                     />
                 </div>
             </div>
@@ -117,9 +146,10 @@ export const TaskForm: React.FC = () => {
                 <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
+                    disabled={isSubmitting}
                     placeholder="Короткий опис..."
                     rows={2}
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none disabled:opacity-60"
                 />
             </div>
 
@@ -131,7 +161,8 @@ export const TaskForm: React.FC = () => {
                     <select
                         value={priority}
                         onChange={(e) => setPriority(e.target.value as Priority)}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
+                        disabled={isSubmitting}
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white disabled:opacity-60"
                     >
                         <option value={PRIORITY.LOW}>Низький (Low)</option>
                         <option value={PRIORITY.MEDIUM}>Середній (Medium)</option>
@@ -141,13 +172,18 @@ export const TaskForm: React.FC = () => {
 
                 <button
                     type="submit"
-                    className={`mt-5 w-1/2 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm ${
+                    disabled={isSubmitting}
+                    className={`mt-5 w-1/2 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed ${
                         editingTask
                             ? 'bg-amber-600 hover:bg-amber-700'
                             : 'bg-indigo-600 hover:bg-indigo-700'
                     }`}
                 >
-                    {editingTask ? 'Зберегти зміни' : '+ Додати завдання'}
+                    {isSubmitting
+                        ? 'Збереження...'
+                        : editingTask
+                            ? 'Зберегти зміни'
+                            : '+ Додати завдання'}
                 </button>
             </div>
         </form>
