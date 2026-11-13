@@ -22,6 +22,15 @@ export const SORT_ORDER = {
 
 export type SortOrder = (typeof SORT_ORDER)[keyof typeof SORT_ORDER];
 
+export const TOAST_TYPE = {
+    SUCCESS: 'success',
+    INFO: 'info',
+    WARNING: 'warning',
+    ERROR: 'error',
+} as const;
+
+export type ToastType = (typeof TOAST_TYPE)[keyof typeof TOAST_TYPE];
+
 export interface Task {
     id: number;
     title: string;
@@ -29,10 +38,22 @@ export interface Task {
     completed: boolean;
     priority: Priority;
     category: string;
-    isPendingDelete?: boolean;
 }
 
-export type ToastType = 'success' | 'info' | 'warning' | 'error';
+export interface TaskInput {
+    title: string;
+    description: string;
+    priority: Priority;
+    category: string;
+}
+
+export interface TaskUpdateInput {
+    title?: string;
+    description?: string;
+    completed?: boolean;
+    priority?: Priority;
+    category?: string;
+}
 
 export interface ToastMessage {
     id: string;
@@ -40,14 +61,3 @@ export interface ToastMessage {
     type: ToastType;
     duration?: number;
 }
-
-export type TaskAction =
-    | { type: 'ADD_TASK'; payload: Omit<Task, 'id' | 'completed' | 'isPendingDelete'> }
-    | { type: 'TOGGLE_TASK'; payload: number }
-    | { type: 'UPDATE_TASK'; payload: { id: number; title: string; description: string; priority: Priority; category: string } }
-    | { type: 'REQUEST_DELETE'; payload: number }
-    | { type: 'CONFIRM_DELETE'; payload: number }
-    | { type: 'UNDO_DELETE'; payload: number }
-    | { type: 'CLEAR_COMPLETED' }
-    | { type: 'RESET_TASKS' }
-    | { type: 'SET_TASKS'; payload: Task[] };
