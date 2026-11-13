@@ -38,6 +38,7 @@ export interface Task {
     completed: boolean;
     priority: Priority;
     category: string;
+    isPendingDelete?: boolean;
 }
 
 export interface TaskInput {
@@ -60,4 +61,5 @@ export interface ToastMessage {
     message: string;
     type: ToastType;
     duration?: number;
+    undoTaskId?: number;
 }

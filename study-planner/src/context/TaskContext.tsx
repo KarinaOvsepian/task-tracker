@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useEffect, useRef, useState } from 'react';
 import {
     FILTER_STATUS,
     SORT_ORDER,
@@ -15,6 +15,7 @@ import { taskRepository } from '../repositories/taskRepository';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
 const ITEMS_PER_PAGE = 10;
+const UNDO_DELETE_DELAY = 5000;
 
 interface TaskContextType {
     tasks: Task[];
@@ -34,15 +35,21 @@ interface TaskContextType {
     setEditingTask: (task: Task | null) => void;
     selectedTask: Task | null;
     setSelectedTask: (task: Task | null) => void;
-    toast: ToastMessage | null;
-    showToast: (message: string, type?: ToastType, duration?: number) => void;
-    hideToast: () => void;
+    toasts: ToastMessage[];
+    showToast: (
+        message: string,
+        type?: ToastType,
+        duration?: number,
+        undoTaskId?: number
+    ) => void;
+    hideToast: (id: string) => void;
 
     retryFetch: () => void;
     addTask: (input: TaskInput) => Promise<boolean>;
     updateTask: (id: number, input: TaskUpdateInput) => Promise<boolean>;
     toggleTask: (id: number) => Promise<void>;
-    deleteTask: (id: number) => Promise<void>;
+    deleteTask: (id: number) => void;
+    undoDelete: (id: number) => void;
 }
 
 export const TaskContext = createContext<TaskContextType | undefined>(undefined);
@@ -63,16 +70,27 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [sortOrder, setSortOrder] = useLocalStorage<SortOrder>('study_planner_sort', SORT_ORDER.NONE);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-    const [toast, setToast] = useState<ToastMessage | null>(null);
+    const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
+    type DeleteTimersMap = Map<number, ReturnType<typeof setTimeout>>;
+    const deleteTimersRef = useRef<DeleteTimersMap>(new Map());
     const totalPages = Math.max(1, Math.ceil(totalTasks / ITEMS_PER_PAGE));
 
-    const showToast = useCallback((message: string, type: ToastType = TOAST_TYPE.INFO, duration = 3000) => {
-        setToast({ id: Date.now().toString(), message, type, duration });
-    }, []);
+    const showToast = useCallback(
+        (
+            message: string,
+            type: ToastType = TOAST_TYPE.INFO,
+            duration = 3000,
+            undoTaskId?: number
+        ) => {
+            const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+            setToasts((prev) => [...prev, { id, message, type, duration, undoTaskId }]);
+        },
+        []
+    );
 
-    const hideToast = useCallback(() => {
-        setToast(null);
+    const hideToast = useCallback((id: string) => {
+        setToasts((prev) => prev.filter((item) => item.id !== id));
     }, []);
 
     useEffect(() => {
@@ -105,7 +123,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         };
 
-        loadTasks();
+        void loadTasks();
 
         return () => {
             controller.abort();
@@ -113,9 +131,17 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [page, reloadTrigger]);
 
     useEffect(() => {
-        const activeCount = tasks.filter((t) => !t.completed).length;
+        const activeCount = tasks.filter((t) => !t.completed && !t.isPendingDelete).length;
         document.title = `Study Planner (${activeCount} active tasks)`;
     }, [tasks]);
+
+    useEffect(() => {
+        const timers = deleteTimersRef.current;
+        return () => {
+            timers.forEach((timer) => clearTimeout(timer));
+            timers.clear();
+        };
+    }, []);
 
     const retryFetch = () => {
         setReloadTrigger((prev) => prev + 1);
@@ -190,22 +216,62 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
-    const deleteTask = async (id: number): Promise<void> => {
-        try {
-            await taskRepository.delete(id);
-            setTasks((prev) => prev.filter((task) => task.id !== id));
-            setTotalTasks((prev) => Math.max(0, prev - 1));
-            if (editingTask?.id === id) {
-                setEditingTask(null);
+    const deleteTask = (id: number): void => {
+        if (deleteTimersRef.current.has(id)) return;
+
+        const target = tasks.find((t) => t.id === id);
+        const shortTitle = target
+            ? target.title.length > 24
+                ? `${target.title.slice(0, 24)}…`
+                : target.title
+            : `#${id}`;
+
+        setTasks((prev) =>
+            prev.map((task) => (task.id === id ? { ...task, isPendingDelete: true } : task))
+        );
+
+        showToast(
+            `«${shortTitle}» буде видалено через 5 сек.`,
+            TOAST_TYPE.WARNING,
+            UNDO_DELETE_DELAY,
+            id
+        );
+
+        const timer = setTimeout(async () => {
+            deleteTimersRef.current.delete(id);
+
+            try {
+                await taskRepository.delete(id);
+                setTasks((prev) => prev.filter((task) => task.id !== id));
+                setTotalTasks((prev) => Math.max(0, prev - 1));
+                setEditingTask((prev) => (prev?.id === id ? null : prev));
+                setSelectedTask((prev) => (prev?.id === id ? null : prev));
+                showToast(`Завдання «${shortTitle}» видалено`, TOAST_TYPE.INFO);
+            } catch (err) {
+                setTasks((prev) =>
+                    prev.map((task) => (task.id === id ? { ...task, isPendingDelete: false } : task))
+                );
+                const message = err instanceof Error ? err.message : 'Помилка при видаленні завдання';
+                showToast(message, TOAST_TYPE.ERROR);
             }
-            if (selectedTask?.id === id) {
-                setSelectedTask(null);
-            }
-            showToast('Завдання видалено', TOAST_TYPE.INFO);
-        } catch (err) {
-            const message = err instanceof Error ? err.message : 'Помилка при видаленні завдання';
-            showToast(message, TOAST_TYPE.ERROR);
+        }, UNDO_DELETE_DELAY);
+
+        deleteTimersRef.current.set(id, timer);
+    };
+
+    const undoDelete = (id: number): void => {
+        const timer = deleteTimersRef.current.get(id);
+        if (timer) {
+            clearTimeout(timer);
+            deleteTimersRef.current.delete(id);
         }
+
+        setTasks((prev) =>
+            prev.map((task) => (task.id === id ? { ...task, isPendingDelete: false } : task))
+        );
+
+        setToasts((prev) => prev.filter((t) => t.undoTaskId !== id));
+        showToast('Видалення скасовано', TOAST_TYPE.INFO);
     };
 
     return (
@@ -227,7 +293,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setEditingTask,
                 selectedTask,
                 setSelectedTask,
-                toast,
+                toasts,
                 showToast,
                 hideToast,
                 retryFetch,
@@ -235,6 +301,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 updateTask,
                 toggleTask,
                 deleteTask,
+                undoDelete,
             }}
         >
             {children}
