@@ -12,16 +12,14 @@ const TYPE_STYLES: Record<ToastType, string> = {
 interface ToastItemProps {
     toast: ToastMessage;
     onClose: (id: string) => void;
-    onUndo: (taskId: number) => void;
 }
 
-const ToastItem: React.FC<ToastItemProps> = ({ toast, onClose, onUndo }) => {
+const ToastItem: React.FC<ToastItemProps> = ({ toast, onClose }) => {
     const [progress, setProgress] = useState(100);
 
     useEffect(() => {
         if (!toast.duration) return;
 
-        setProgress(100);
         const intervalTime = 50;
         const step = (intervalTime / toast.duration) * 100;
 
@@ -52,27 +50,14 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onClose, onUndo }) => {
             }`}
         >
             <span className="text-sm font-medium">{toast.message}</span>
-
-            <div className="flex items-center gap-2 shrink-0">
-                {toast.undoTaskId !== undefined && (
-                    <button
-                        type="button"
-                        onClick={() => onUndo(toast.undoTaskId!)}
-                        className="px-2.5 py-1 bg-white text-amber-700 hover:bg-amber-50 rounded-lg text-xs font-bold transition-colors shadow-xs"
-                    >
-                        Скасувати
-                    </button>
-                )}
-
-                <button
-                    type="button"
-                    onClick={() => onClose(toast.id)}
-                    className="text-white/80 hover:text-white text-xs font-bold px-1"
-                    title="Закрити"
-                >
-                    ✕
-                </button>
-            </div>
+            <button
+                type="button"
+                onClick={() => onClose(toast.id)}
+                className="text-white/80 hover:text-white text-xs font-bold px-1"
+                aria-label="Закрити сповіщення"
+            >
+                ✕
+            </button>
 
             {toast.duration && (
                 <div
@@ -85,19 +70,14 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onClose, onUndo }) => {
 };
 
 export const Toast: React.FC = () => {
-    const { toasts, hideToast, undoDelete } = useTaskContext();
+    const { toasts, hideToast } = useTaskContext();
 
     if (toasts.length === 0) return null;
 
     return (
         <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2.5 items-end">
             {toasts.map((toast) => (
-                <ToastItem
-                    key={toast.id}
-                    toast={toast}
-                    onClose={hideToast}
-                    onUndo={undoDelete}
-                />
+                <ToastItem key={toast.id} toast={toast} onClose={hideToast} />
             ))}
         </div>
     );
