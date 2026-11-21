@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     TOAST_TYPE,
     type Task,
@@ -12,29 +12,7 @@ import { useAuth } from '../hooks/useAuth';
 
 const ITEMS_PER_PAGE = 10;
 
-interface TaskContextType {
-    tasks: Task[];
-    totalTasks: number;
-    isLoading: boolean;
-    error: string | null;
-
-    page: number;
-    limit: number;
-    totalPages: number;
-    setPage: (page: number) => void;
-
-    toasts: ToastMessage[];
-    showToast: (message: string, type?: ToastType, duration?: number) => void;
-    hideToast: (id: string) => void;
-
-    retryFetch: () => void;
-    addTask: (input: TaskInput) => Promise<Task | null>;
-    updateTask: (id: number, input: TaskUpdateInput) => Promise<Task | null>;
-    toggleTask: (id: number) => Promise<boolean>;
-    deleteTask: (id: number) => Promise<boolean>;
-}
-
-export const TaskContext = createContext<TaskContextType | undefined>(undefined);
+import { TaskContext } from './task-context';
 
 function isAbortError(err: unknown): boolean {
     return err instanceof DOMException && err.name === 'AbortError';

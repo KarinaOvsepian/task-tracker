@@ -26,58 +26,57 @@ export const TaskDetailsPage: React.FC = () => {
     const { tasks, updateTask, deleteTask } = useTaskContext();
     const { isAuthenticated } = useAuth();
 
-    const [task, setTask] = useState<Task | null>(null);
-    const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
+    const numericId = Number(taskId);
+    const isValidId = Boolean(taskId) && !Number.isNaN(numericId);
+    const isClientCreated = isValidId && numericId > 254;
+
+    const [fetchedTask, setFetchedTask] = useState<Task | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(isValidId && !isClientCreated);
+    const [fetchError, setFetchError] = useState<string | null>(null);
     const [isEditOpen, setIsEditOpen] = useState<boolean>(false);
 
-    const numericId = Number(taskId);
-
     useEffect(() => {
-        if (!taskId || Number.isNaN(numericId)) {
-            setError('Некоректний ідентифікатор завдання');
-            setIsLoading(false);
-            return;
-        }
+        if (!isValidId || isClientCreated) return;
 
         const controller = new AbortController();
 
-        const loadTask = async () => {
-            setIsLoading(true);
-            setError(null);
-
-            try {
-                const fetched = await taskRepository.getById(numericId, controller.signal);
-                const existingInContext = tasks.find((t) => t.id === numericId);
-
-                setTask({
-                    ...fetched,
-                    title: existingInContext?.title ?? fetched.title,
-                    completed: existingInContext?.completed ?? fetched.completed,
-                    description: existingInContext?.description ?? fetched.description,
-                    category: existingInContext?.category ?? fetched.category,
-                    priority: existingInContext?.priority ?? fetched.priority,
-                    createdBy: existingInContext?.createdBy ?? fetched.createdBy,
-                    createdAt: existingInContext?.createdAt ?? fetched.createdAt,
-                });
-            } catch (err) {
+        taskRepository
+            .getById(numericId, controller.signal)
+            .then((data) => {
+                setFetchError(null);
+                setFetchedTask(data);
+            })
+            .catch((err: unknown) => {
                 if (err instanceof DOMException && err.name === 'AbortError') return;
-                setError(
+                setFetchError(
                     err instanceof Error ? err.message : 'Не вдалося завантажити деталі завдання'
                 );
-            } finally {
+            })
+            .finally(() => {
                 if (!controller.signal.aborted) {
                     setIsLoading(false);
                 }
-            }
-        };
-
-        loadTask();
+            });
 
         return () => {
             controller.abort();
         };
-    }, [taskId, numericId]);
+    }, [isValidId, isClientCreated, numericId]);
+
+    const contextTask = isValidId ? tasks.find((t) => t.id === numericId) : undefined;
+    const task: Task | null =
+        fetchedTask || contextTask
+            ? {
+                ...(fetchedTask ?? contextTask!),
+                ...(contextTask ?? {}),
+            }
+            : null;
+
+    const error = !isValidId
+        ? 'Некоректний ідентифікатор завдання'
+        : isClientCreated && !contextTask
+            ? 'Створене завдання не знайдено'
+            : fetchError;
 
     const handleEditClick = () => {
         if (!isAuthenticated) {
@@ -93,7 +92,7 @@ export const TaskDetailsPage: React.FC = () => {
         if (!updated) {
             throw new Error('Не вдалося оновити завдання');
         }
-        setTask(updated);
+        setFetchedTask(updated);
     };
 
     const handleDeleteClick = async () => {

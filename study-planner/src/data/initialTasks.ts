@@ -8,6 +8,8 @@ export const initialTasks: Task[] = [
         completed: false,
         priority: PRIORITY.HIGH,
         category: 'React',
+        createdBy: 'Me',
+        createdAt: '21-11-2026'
     },
     {
         id: 2,
@@ -16,5 +18,7 @@ export const initialTasks: Task[] = [
         completed: true,
         priority: PRIORITY.MEDIUM,
         category: 'TypeScript',
+        createdBy: 'My friend',
+        createdAt: '19-11-2026'
     },
 ];

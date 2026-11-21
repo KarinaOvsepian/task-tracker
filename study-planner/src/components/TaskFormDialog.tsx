@@ -12,6 +12,13 @@ export type TaskFormDialogProps = {
     onSubmit: (data: TaskFormData) => Promise<void>;
 };
 
+const EMPTY_FORM_VALUES: TaskFormData = {
+    title: '',
+    description: '',
+    category: 'Загальне',
+    priority: PRIORITY.MEDIUM,
+};
+
 export const TaskFormDialog: React.FC<TaskFormDialogProps> = ({
                                                                   open,
                                                                   mode,
@@ -23,6 +30,16 @@ export const TaskFormDialog: React.FC<TaskFormDialogProps> = ({
     const [submitError, setSubmitError] = useState<string | null>(null);
     const titleInputRef = useRef<HTMLInputElement | null>(null);
 
+    const formValues: TaskFormData =
+        mode === 'edit' && task
+            ? {
+                title: task.title,
+                description: task.description,
+                category: task.category,
+                priority: task.priority,
+            }
+            : EMPTY_FORM_VALUES;
+
     const {
         register,
         handleSubmit,
@@ -30,55 +47,40 @@ export const TaskFormDialog: React.FC<TaskFormDialogProps> = ({
         formState: { errors, isSubmitting },
     } = useForm<TaskFormData>({
         resolver: zodResolver(taskSchema),
-        defaultValues: {
-            title: '',
-            description: '',
-            category: 'Загальне',
-            priority: PRIORITY.MEDIUM,
-        },
+        defaultValues: EMPTY_FORM_VALUES,
+        values: formValues,
     });
+
+    const handleClose = () => {
+        if (isSubmitting) return;
+        setIsSuccess(false);
+        setSubmitError(null);
+        reset(EMPTY_FORM_VALUES);
+        onClose();
+    };
 
     useEffect(() => {
         if (!open) return;
-
-        setIsSuccess(false);
-        setSubmitError(null);
-
-        if (mode === 'edit' && task) {
-            reset({
-                title: task.title,
-                description: task.description,
-                category: task.category,
-                priority: task.priority,
-            });
-        } else {
-            reset({
-                title: '',
-                description: '',
-                category: 'Загальне',
-                priority: PRIORITY.MEDIUM,
-            });
-        }
 
         const focusTimer = setTimeout(() => {
             titleInputRef.current?.focus();
         }, 0);
 
-        return () => clearTimeout(focusTimer);
-    }, [open, mode, task, reset]);
-
-    useEffect(() => {
-        if (!open) return;
-
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape' && !isSubmitting) {
+                setIsSuccess(false);
+                setSubmitError(null);
+                reset(EMPTY_FORM_VALUES);
                 onClose();
             }
         };
 
         window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [open, isSubmitting, onClose]);
+        return () => {
+            clearTimeout(focusTimer);
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [open, isSubmitting, onClose, reset]);
 
     if (!open) return null;
 
@@ -86,11 +88,13 @@ export const TaskFormDialog: React.FC<TaskFormDialogProps> = ({
 
     const handleFormSubmit = async (data: TaskFormData) => {
         setSubmitError(null);
+        setIsSuccess(false);
         try {
             await onSubmit(data);
             setIsSuccess(true);
             setTimeout(() => {
                 setIsSuccess(false);
+                reset(EMPTY_FORM_VALUES);
                 onClose();
             }, 450);
         } catch (err) {
@@ -103,9 +107,7 @@ export const TaskFormDialog: React.FC<TaskFormDialogProps> = ({
     return (
         <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4"
-            onClick={() => {
-                if (!isSubmitting) onClose();
-            }}
+            onClick={handleClose}
         >
             <div
                 role="dialog"
@@ -123,7 +125,7 @@ export const TaskFormDialog: React.FC<TaskFormDialogProps> = ({
                     </h2>
                     <button
                         type="button"
-                        onClick={onClose}
+                        onClick={handleClose}
                         disabled={isSubmitting}
                         aria-label="Закрити діалог"
                         className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-sm font-semibold px-2 py-1 rounded-lg disabled:opacity-50"
@@ -244,7 +246,7 @@ export const TaskFormDialog: React.FC<TaskFormDialogProps> = ({
                     <div className="pt-2 flex items-center justify-end gap-2">
                         <button
                             type="button"
-                            onClick={onClose}
+                            onClick={handleClose}
                             disabled={isSubmitting}
                             className="px-4 py-2 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
                         >

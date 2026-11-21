@@ -3,6 +3,7 @@ import type { ApiTodo, TodosResponse } from '../types/api';
 import { PRIORITY, type Task, type TaskInput, type TaskUpdateInput } from '../types/task';
 
 const DEFAULT_USER_ID = 1;
+const DUMMY_JSON_MAX_ID = 254;
 
 function mapApiTodoToTask(
     apiTodo: ApiTodo,
@@ -55,6 +56,19 @@ export const taskRepository = {
     },
 
     async update(id: number, input: TaskUpdateInput): Promise<Task> {
+        if (id > DUMMY_JSON_MAX_ID) {
+            return {
+                id,
+                title: input.title ?? '',
+                description: input.description ?? '',
+                completed: input.completed ?? false,
+                priority: input.priority ?? PRIORITY.MEDIUM,
+                category: input.category ?? 'Загальне',
+                createdBy: 'Авторизований користувач',
+                createdAt: new Date().toISOString(),
+            };
+        }
+
         const payload: Record<string, unknown> = {};
         if (input.title !== undefined) payload.todo = input.title;
         if (input.completed !== undefined) payload.completed = input.completed;
@@ -69,6 +83,9 @@ export const taskRepository = {
     },
 
     async delete(id: number): Promise<void> {
+        if (id > DUMMY_JSON_MAX_ID) {
+            return;
+        }
         await httpClient.delete(`/todos/${id}`);
     },
 };

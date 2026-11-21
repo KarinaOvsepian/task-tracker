@@ -1,8 +1,8 @@
-import React, { createContext, useEffect } from 'react';
-import { THEME, type Theme, type ThemeContextType } from '../types/theme';
+import React, { useEffect } from 'react';
+import { THEME, type Theme } from '../types/theme';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
-export const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+import { ThemeContext } from './theme-context';
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [theme, setTheme] = useLocalStorage<Theme>('study_planner_theme', THEME.LIGHT);

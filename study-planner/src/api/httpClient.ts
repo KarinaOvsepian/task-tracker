@@ -36,6 +36,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
                 errorMessage = errorData.message;
             }
         } catch {
+            errorMessage = `HTTP Error: ${response.status} ${response.statusText}`.trim();
         }
         throw new Error(errorMessage);
     }
