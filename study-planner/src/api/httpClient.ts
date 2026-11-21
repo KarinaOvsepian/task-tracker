@@ -1,43 +1,61 @@
-const RAW_BASE_URL = import.meta.env.VITE_API_URL || 'https://dummyjson.com';
-const BASE_URL = RAW_BASE_URL.replace(/\/+$/, '');
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://dummyjson.com';
 
-interface RequestOptions {
-    method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+let authToken: string | null = null;
+
+export const setHttpAuthToken = (token: string | null): void => {
+    authToken = token;
+};
+
+interface RequestOptions extends Omit<RequestInit, 'body'> {
     body?: unknown;
-    signal?: AbortSignal;
 }
 
 async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-    const { method = 'GET', body, signal } = options;
-    const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-    const url = `${BASE_URL}${normalizedEndpoint}`;
+    const { body, headers, ...restOptions } = options;
 
-    const response = await fetch(url, {
-        method,
-        headers: {
-            'Content-Type': 'application/json',
-        },
+    const requestHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(headers as Record<string, string>),
+    };
+
+    if (authToken) {
+        requestHeaders['Authorization'] = `Bearer ${authToken}`;
+    }
+
+    const response = await fetch(`${BASE_URL}${endpoint}`, {
+        ...restOptions,
+        headers: requestHeaders,
         body: body !== undefined ? JSON.stringify(body) : undefined,
-        signal,
     });
 
     if (!response.ok) {
-        throw new Error(`HTTP помилка ${response.status}: ${response.statusText || 'Не вдалося виконати запит'}`);
+        let errorMessage = `HTTP Error: ${response.status}`;
+        try {
+            const errorData = await response.json();
+            if (errorData && typeof errorData.message === 'string') {
+                errorMessage = errorData.message;
+            }
+        } catch {
+        }
+        throw new Error(errorMessage);
     }
 
-    return (await response.json()) as T;
+    return response.json() as Promise<T>;
 }
 
 export const httpClient = {
-    get: <T>(endpoint: string, signal?: AbortSignal): Promise<T> =>
-        request<T>(endpoint, { method: 'GET', signal }),
+    get: <T>(endpoint: string, options?: RequestOptions) =>
+        request<T>(endpoint, { ...options, method: 'GET' }),
 
-    post: <T>(endpoint: string, body: unknown, signal?: AbortSignal): Promise<T> =>
-        request<T>(endpoint, { method: 'POST', body, signal }),
+    post: <T>(endpoint: string, body: unknown, options?: RequestOptions) =>
+        request<T>(endpoint, { ...options, method: 'POST', body }),
 
-    patch: <T>(endpoint: string, body: unknown, signal?: AbortSignal): Promise<T> =>
-        request<T>(endpoint, { method: 'PATCH', body, signal }),
+    put: <T>(endpoint: string, body: unknown, options?: RequestOptions) =>
+        request<T>(endpoint, { ...options, method: 'PUT', body }),
 
-    delete: <T>(endpoint: string, signal?: AbortSignal): Promise<T> =>
-        request<T>(endpoint, { method: 'DELETE', signal }),
+    patch: <T>(endpoint: string, body: unknown, options?: RequestOptions) =>
+        request<T>(endpoint, { ...options, method: 'PATCH', body }),
+
+    delete: <T>(endpoint: string, options?: RequestOptions) =>
+        request<T>(endpoint, { ...options, method: 'DELETE' }),
 };

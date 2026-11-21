@@ -1,81 +1,67 @@
 import { httpClient } from '../api/httpClient';
-import type { ApiTodo, CreateTodoDto, TodosResponse, UpdateTodoDto } from '../types/api';
+import type { ApiTodo, TodosResponse } from '../types/api';
 import { PRIORITY, type Task, type TaskInput, type TaskUpdateInput } from '../types/task';
 
-export interface GetTasksParams {
-    limit: number;
-    skip: number;
-    signal?: AbortSignal;
-}
-
-export interface PaginatedTasksResult {
-    tasks: Task[];
-    total: number;
-    skip: number;
-    limit: number;
-}
-
 const DEFAULT_USER_ID = 1;
-const DEFAULT_CATEGORY = 'Загальне';
 
-function toTask(
-    dto: ApiTodo,
-    metadata?: Partial<Pick<Task, 'description' | 'priority' | 'category'>>
+function mapApiTodoToTask(
+    apiTodo: ApiTodo,
+    overrides?: Partial<Omit<Task, 'id' | 'title' | 'completed'>>
 ): Task {
     return {
-        id: dto.id,
-        title: dto.todo,
-        description: metadata?.description ?? '',
-        completed: dto.completed,
-        priority: metadata?.priority ?? PRIORITY.MEDIUM,
-        category: metadata?.category ?? DEFAULT_CATEGORY,
+        id: apiTodo.id,
+        title: apiTodo.todo,
+        completed: apiTodo.completed,
+        description: overrides?.description ?? 'Навчальне завдання із REST API',
+        priority: overrides?.priority ?? PRIORITY.MEDIUM,
+        category: overrides?.category ?? 'Загальне',
+        createdBy: overrides?.createdBy ?? `User #${apiTodo.userId || DEFAULT_USER_ID}`,
+        createdAt: overrides?.createdAt ?? new Date().toISOString(),
     };
 }
 
 export const taskRepository = {
-    async getAll({ limit, skip, signal }: GetTasksParams): Promise<PaginatedTasksResult> {
-        const response = await httpClient.get<TodosResponse>(
-            `/todos?limit=${limit}&skip=${skip}`,
-            signal
+    async getAll(params: { limit: number; skip: number; signal?: AbortSignal }) {
+        const data = await httpClient.get<TodosResponse>(
+            `/todos?limit=${params.limit}&skip=${params.skip}`,
+            { signal: params.signal }
         );
 
         return {
-            tasks: response.todos.map((item) => toTask(item)),
-            total: response.total,
-            skip: response.skip,
-            limit: response.limit,
+            tasks: data.todos.map((item) => mapApiTodoToTask(item)),
+            total: data.total,
         };
     },
 
     async getById(id: number, signal?: AbortSignal): Promise<Task> {
-        const dto = await httpClient.get<ApiTodo>(`/todos/${id}`, signal);
-        return toTask(dto);
+        const data = await httpClient.get<ApiTodo>(`/todos/${id}`, { signal });
+        return mapApiTodoToTask(data);
     },
 
     async create(input: TaskInput): Promise<Task> {
-        const payload: CreateTodoDto = {
+        const created = await httpClient.post<ApiTodo>('/todos/add', {
             todo: input.title,
             completed: false,
             userId: DEFAULT_USER_ID,
-        };
+        });
 
-        const createdDto = await httpClient.post<ApiTodo>('/todos/add', payload);
-
-        return toTask(createdDto, {
+        return mapApiTodoToTask(created, {
             description: input.description,
             priority: input.priority,
-            category: input.category || DEFAULT_CATEGORY,
+            category: input.category,
+            createdBy: input.createdBy ?? 'Авторизований користувач',
+            createdAt: new Date().toISOString(),
         });
     },
 
     async update(id: number, input: TaskUpdateInput): Promise<Task> {
-        const payload: UpdateTodoDto = {};
+        const payload: Record<string, unknown> = {};
         if (input.title !== undefined) payload.todo = input.title;
         if (input.completed !== undefined) payload.completed = input.completed;
 
-        const updatedDto = await httpClient.patch<ApiTodo>(`/todos/${id}`, payload);
+        const updated = await httpClient.patch<ApiTodo>(`/todos/${id}`, payload);
 
-        return toTask(updatedDto, {
+        return mapApiTodoToTask(updated, {
             description: input.description,
             priority: input.priority,
             category: input.category,
@@ -83,6 +69,6 @@ export const taskRepository = {
     },
 
     async delete(id: number): Promise<void> {
-        await httpClient.delete<ApiTodo & { isDeleted?: boolean }>(`/todos/${id}`);
+        await httpClient.delete(`/todos/${id}`);
     },
 };
