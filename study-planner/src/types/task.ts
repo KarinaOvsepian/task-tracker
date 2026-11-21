@@ -14,6 +14,15 @@ export const FILTER_STATUS = {
 
 export type FilterStatus = (typeof FILTER_STATUS)[keyof typeof FILTER_STATUS];
 
+export const FILTER_PRIORITY = {
+    ALL: 'all',
+    LOW: 'low',
+    MEDIUM: 'medium',
+    HIGH: 'high',
+} as const;
+
+export type FilterPriority = (typeof FILTER_PRIORITY)[keyof typeof FILTER_PRIORITY];
+
 export const SORT_ORDER = {
     NONE: 'none',
     HIGH_TO_LOW: 'high-to-low',
@@ -38,7 +47,8 @@ export interface Task {
     completed: boolean;
     priority: Priority;
     category: string;
-    isPendingDelete?: boolean;
+    createdBy: string;
+    createdAt: string;
 }
 
 export interface TaskInput {
@@ -46,6 +56,7 @@ export interface TaskInput {
     description: string;
     priority: Priority;
     category: string;
+    createdBy?: string;
 }
 
 export interface TaskUpdateInput {
@@ -61,5 +72,4 @@ export interface ToastMessage {
     message: string;
     type: ToastType;
     duration?: number;
-    undoTaskId?: number;
 }
