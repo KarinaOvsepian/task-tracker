@@ -1,31 +1,38 @@
-import { Header } from './components/Header';
-import { TaskForm } from './components/TaskForm';
-import { TaskStats } from './components/TaskStats';
-import { TaskFilters } from './components/TaskFilters';
-import { TaskList } from './components/TaskList';
-import { Pagination } from './components/Pagination';
-import { TaskDetailsModal } from './components/TaskDetailsModal';
-import { Toast } from './components/Toast';
-import { TaskProvider } from './context/TaskContext';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
 import { ThemeProvider } from './context/ThemeContext';
+import { AuthProvider } from './context/AuthContext';
+import { TaskProvider } from './context/TaskContext';
+import { AppLayout } from './layouts/AppLayout';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { TasksPage } from './pages/TasksPage';
+import { TaskDetailsPage } from './pages/TaskDetailsPage';
+import { LoginPage } from './pages/LoginPage';
+import { ProfilePage } from './pages/ProfilePage';
 
 export function App() {
     return (
         <ThemeProvider>
-            <TaskProvider>
-                <div className="min-h-screen bg-slate-100 dark:bg-slate-900 py-10 px-4 font-sans transition-colors">
-                    <div className="max-w-xl mx-auto">
-                        <Header />
-                        <TaskForm />
-                        <TaskStats />
-                        <TaskFilters />
-                        <TaskList />
-                        <Pagination />
-                        <TaskDetailsModal />
-                        <Toast />
-                    </div>
-                </div>
-            </TaskProvider>
+            <AuthProvider>
+                <TaskProvider>
+                    <BrowserRouter>
+                        <Routes>
+                            <Route path="/" element={<Navigate to="/tasks" replace />} />
+
+                            <Route element={<AppLayout />}>
+                                <Route path="/tasks" element={<TasksPage />} />
+                                <Route path="/tasks/:taskId" element={<TaskDetailsPage />} />
+                                <Route path="/login" element={<LoginPage />} />
+
+                                <Route element={<ProtectedRoute />}>
+                                    <Route path="/profile" element={<ProfilePage />} />
+                                </Route>
+                            </Route>
+
+                            <Route path="*" element={<Navigate to="/tasks" replace />} />
+                        </Routes>
+                    </BrowserRouter>
+                </TaskProvider>
+            </AuthProvider>
         </ThemeProvider>
     );
 }
